@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "express": "^4.21.2",
+    "node-fetch": "^3.3.2",
     "uuid": "^11.0.5",
     "v4": "^0.0.1",
     "ws": "^8.18.0"

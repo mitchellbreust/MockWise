@@ -1,3 +1,4 @@
+
 export class UserSession {
     constructor(session, ai = null, userSocketCon = null, aiSocketCon = null) {
         this.session = session;

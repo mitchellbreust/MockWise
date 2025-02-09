@@ -1,32 +1,52 @@
 import express from "express";
-import { WebSocket } from "ws";
-import { v4 as uuidv4 } from 'uuid';
+import { WebSocketServer } from "ws";
 import { ClientManager } from "./datastore/clientManager";
-import { startNewInterview } from "./controller";
 import UserWebSocketServer from "./webSockets/UserWebSocketServer";
-import { validateRequestBody } from "./middleware/validationMiddleware";
-import { errorHandler } from "./middleware/errorMiddleware";
-
-const dataStore = new ClientManager();
-const wssUser = new UserWebSocketServer(new WebSocket.Server({ noServer: true }));
+import { v4 as uuidv4 } from 'uuid';
+import { Ai } from "./AI/Ai";
+import { UserSession } from "./datastore/UserSession";
+import AiSocketCon from "./webSockets/AiSocketCon";
+import WebSocket from "ws";
+import { handleNewSocketInterviewConnetion } from "./controller";
 
 const app = express();
+app.use(express.json());
+
+const dataStore = new ClientManager();
+const wss = new WebSocketServer({ noServer: true });
+const userWebSocketServer = new UserWebSocketServer(wss);
+
 const port = 8080;
 
-app.use(express.json());
-app.use(errorHandler);
-
-app.post('/startInterview', validateRequestBody, (req, res) => {
-    const resume = req.body.resume ? req.body.resume : "";
-    const jobDescription = req.body.jobDescription ? req.body.jobDescription : "";
-    const session = uuidv4();
-
-    startNewInterview(session, resume, jobDescription, dataStore, wssUser, req);
-
-    res.status(200).send('WebSocket connection initiated.');
+app.post('/startInterview', (req, res) => {
+    const sessionId = uuidv4();
+    const { resume, jobDescription } = req.body;
+    
+    // Create AI instance
+    const newInterview = new Ai(resume, jobDescription);
+    
+    // Create session before WebSocket upgrade
+    const newUserSession = new UserSession(sessionId, newInterview, null, null);
+    dataStore.addNewSession(sessionId, newUserSession);
+    
+    res.json({ sessionId });
 });
 
+const server = app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on port ${port}`);
+    userWebSocketServer.startHeartbeat();
+});
 
-app.listen(port, () => {
-    console.log("Server started on port " + port);
+server.on('upgrade', (request, socket, head) => {
+    const url = new URL(request.url, `http://${request.headers.host}`);
+    const sessionId = url.searchParams.get('sessionId');
+    
+    if (url.pathname === '/interview' && sessionId && dataStore.hasSession(sessionId)) {
+        userWebSocketServer.wss.handleUpgrade(request, socket, head, socket => {
+           userWebSocketServer.wss.emit('connection', socket, request);
+           handleNewSocketInterviewConnetion(socket, dataStore, sessionId);
+          })
+    } else {
+        socket.destroy();
+    }
 });

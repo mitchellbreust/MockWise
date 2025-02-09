@@ -1,3 +1,4 @@
+
 export class ClientManager {
     constructor() {
         this.dataStore = new Map();
@@ -9,5 +10,9 @@ export class ClientManager {
 
     getSession(session) {
         return this.dataStore.get(session);
+    }
+
+    hasSession(session) {
+        return this.dataStore.has(session);
     }
 }

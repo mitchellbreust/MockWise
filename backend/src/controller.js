@@ -5,19 +5,12 @@ import AiSocketCon from "./webSockets/AiSocketCon";
 import WebSocket from "ws";
 
 
-export function startNewInterview(sessionId, resume, jobDescription, dataStore, wssUser, req) {
-    const newInterview = new Ai(resume, jobDescription);
+export function handleNewSocketInterviewConnetion(ws, dataStore, sessionId) {
+    const userSession = dataStore.getSession(sessionId);
 
-    const clientSocket = req.socket;
-    let newUserSocket;
-    wssUser.wss.handleUpgrade(req, clientSocket, req.head, (ws) => {
-        wssUser.wss.emit('connection', ws, req);
-        newUserSocket = new UserSocketCon(ws);
-    });
+    const newUserWebSocketCon = new UserSocketCon(ws);
+    userSession.updateUserWebSocketCon(newUserWebSocketCon);
 
-    const wsAi = new WebSocket("url");
-    const newAiSocket = new AiSocketCon(wsAi);
-
-    const newUserSession = new UserSession(sessionId, newInterview, newUserSocket, newAiSocket);
-    dataStore.addNewSession(sessionId, newUserSession);
+    const newAiWebSocketCon = new AiSocketCon(new WebSocket('url'));
+    userSession.updateAiWebSocketCon(newAiWebSocketCon);
 }
