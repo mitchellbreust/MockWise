@@ -1,47 +1,31 @@
 import express from "express";
-import Ai from "./AI/Ai";
 import { WebSocket } from "ws";
-import { v4 as uuidv4 } from 'uuid'; // You can use a package like uuid to generate session IDs
-import ClientManager from "./datastore/clientManager";
-import { UserSession } from "./datastore/UserSession";
-import UserSocketCon from "./webSockets/UserSocketCon";
-import AiSocketCon from "./webSockets/AiSocketCon";
+import { v4 as uuidv4 } from 'uuid';
+import { ClientManager } from "./datastore/clientManager";
+import { startNewInterview } from "./controller";
+import UserWebSocketServer from "./webSockets/UserWebSocketServer";
+import { validateRequestBody } from "./middleware/validationMiddleware";
+import { errorHandler } from "./middleware/errorMiddleware";
 
 const dataStore = new ClientManager();
-const wssUser = new WebSocket.Server({ noServer: true });
+const wssUser = new UserWebSocketServer(new WebSocket.Server({ noServer: true }));
 
 const app = express();
 const port = 8080;
+
 app.use(express.json());
+app.use(errorHandler);
 
-// Define the 'connection' event to handle when a new WebSocket is opened
-wssUser.on('connection', (ws, req) => {
-    console.log('New WebSocket connection established');
-});
-
-app.post('/startInterview', (req, res) => {
-    let resume = req.body.resume ? req.body.resume : "";
-    let jobDescription = req.body.jobDescription ? req.body.jobDescription : "";
-    const newInterview = new Ai(resume, jobDescription);
-
+app.post('/startInterview', validateRequestBody, (req, res) => {
+    const resume = req.body.resume ? req.body.resume : "";
+    const jobDescription = req.body.jobDescription ? req.body.jobDescription : "";
     const session = uuidv4();
-    const newUserSession = new UserSession(session, newInterview);
 
-    const clientSocket = req.socket;
-    wssUser.handleUpgrade(req, clientSocket, req.head, (ws) => {
-        wssUser.emit('connection', ws, req);
-        const newUserSocket = new UserSocketCon(ws)
-        newUserSession.updateUserSocketObj(newUserSocket);
-    });
-
-    const wsAi = new WebSocket("url");
-    const newAiSocket = new AiSocketCon(wsAi)
-    newUserSession.updateAiSocketObj(newAiSocket);
-
-    dataStore.addNewSession(session, newUserSession);
+    startNewInterview(session, resume, jobDescription, dataStore, wssUser, req);
 
     res.status(200).send('WebSocket connection initiated.');
 });
+
 
 app.listen(port, () => {
     console.log("Server started on port " + port);

@@ -1,20 +1,20 @@
 export class UserSession {
-    constructor(session, aiObj = null, userSocketObj = null, aiSocketObj = null) {
+    constructor(session, ai = null, userSocketCon = null, aiSocketCon = null) {
         this.session = session;
-        this.ai = aiObj;
-        this.userSocketObj = userSocketObj;
-        this.aiSocketObj = aiSocketObj;
+        this.ai = ai;
+        this.userSocketCon = userSocketCon;
+        this.aiSocketCon = aiSocketCon;
     }
 
-    updateAiObj(aiObj) {
-        this.ai = aiObj;
+    updateAiObj(ai) {
+        this.ai = ai;
     }
 
-    updateAiSocketObj(aiSocketObj) {
-        this.aiSocketObj = aiSocketObj;
+    updateAiSocketObj(aiSocketCon) {
+        this.aiSocketCon = aiSocketCon;
     }
 
-    updateUserSocketObj(userSocketObj) {
-        this.userSocketObj = userSocketObj;
+    updateUserSocketObj(userSocketCon) {
+        this.userSocketCon = userSocketCon;
     }
 }
