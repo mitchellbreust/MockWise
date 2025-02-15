@@ -345,29 +345,24 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
             console.log('Connected');
             setIsConnected(true);
             
-            // Initial setup
+            // Send session update
             dc.send(JSON.stringify({
                 type: "session.update",
                 session: {
-                    instructions: "You are an interviewer. Your task is to generate ONE focused interview question at a time that:\n"
-                                    + "- Generate ONE focused interview question at a time that directly relates to the candidate's resume experience and matches the job requirements.\n"
-                                    + "- Build on previous conversation context.\n"
-                                    + "- Use natural conversational language for voice output.\n"
-                                    + "- Recognize when the user asks for feedback or a better way to phrase their answer, and provide constructive feedback before moving on to the next question.\n"
-                                    + "Format: Add no prefix, make it just natural conversation language that is to be spoken.\n\n" 
-                                    + "Candidate's resume: [Start resume]\n" + resume + "\n[End resume]\n\n"
-                                    + "Job description: [Start job description]\n" + jobInfo + "\n[End job description]" + "\n\n"
-                                    + "This is the start of the conversation so welcome the user and ask them to introduce themselves.",
-
+                    instructions: `You are a technical interviewer conducting a job interview. Your role is to:
+                        1. First, briefly introduce yourself as the interviewer and state the position being interviewed for
+                        2. Use the candidate's resume to ask targeted questions about their experience
+                        3. Reference specific projects and skills from their resume
+                        4. Ask questions that evaluate their fit for the job requirements
+                        5. Keep responses focused and professional
+                        6. Provide constructive feedback after each answer
+                        
+                        Context:
+                        Resume: ${resume}
+                        Job Description: ${jobInfo}
+                        
+                        Format: Natural conversational language, no prefixes or labels.`,
                     voice: "alloy"
-                }
-            }));
-
-            dc.send(JSON.stringify({
-                type: "response.create",
-                response: {
-                    modalities: ["text", "audio"],
-                    instructions: "Start the interview with an introduction."
                 }
             }));
         };
@@ -375,7 +370,16 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
         dc.onmessage = (event) => {
             const data = JSON.parse(event.data);
             
-            if (data.type === 'output_audio_buffer.started') {
+            if (data.type === 'session.updated') {
+                console.log('Session updated, sending initial response request');
+                // Only create response after session is updated
+                dc.send(JSON.stringify({
+                    type: "response.create",
+                    response: {
+                        modalities: ["text", "audio"]
+                    }
+                }));
+            } else if (data.type === 'output_audio_buffer.started') {
                 transcriptQueue.current = [];
                 isProcessingTranscript.current = false;
                 setCurrentTranscript('');
@@ -397,6 +401,7 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
     const sendMessage = () => {
         if (!input.trim() || !dataChannel.current) return;
 
+        // Add the message to conversation
         dataChannel.current.send(JSON.stringify({
             type: "conversation.item.create",
             item: {
@@ -408,7 +413,9 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
 
         dataChannel.current.send(JSON.stringify({
             type: "response.create",
-            response: { modalities: ["text", "audio"] }
+            response: { 
+                modalities: ["text", "audio"]
+            }
         }));
 
         setMessages(prev => [...prev, { text: input, type: 'user' }]);
