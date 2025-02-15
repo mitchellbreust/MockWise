@@ -33,7 +33,7 @@ function App() {
 
   return (
     <AppContainer>
-      <Title>AI Interview Practice</Title>
+      <Title>MockWise: Interview Practice</Title>
       {!sessionToken ? (
         <SetupForm onSessionStart={setSessionToken} />
       ) : (

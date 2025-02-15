@@ -1,13 +1,8 @@
 import { useState, useRef } from 'react';
 import styled from 'styled-components';
 import { API_URL } from '../config';
-import { read, utils } from 'xlsx';
-import mammoth from 'mammoth';
-import * as PDFJS from 'pdfjs-dist/legacy/build/pdf';
 
 // Set up PDF.js with CDN worker
-PDFJS.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS.version}/pdf.worker.js`;
-
 const Form = styled.form`
   width: 100%;
   max-width: 600px;
@@ -171,158 +166,98 @@ const OrDivider = styled.div`
 `;
 
 function SetupForm({ onSessionStart }) {
-  const [resume, setResume] = useState('');
-  const [jobInfo, setJobInfo] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [inputMode, setInputMode] = useState('text'); // 'text' or 'file'
-  const resumeFileRef = useRef(null);
-  const jobFileRef = useRef(null);
+    const [resume, setResume] = useState('');
+    const [jobInfo, setJobInfo] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const resumeFileRef = useRef(null);
+    const jobFileRef = useRef(null);
 
-  const handleFileRead = async (file, setter) => {
-    try {
-      const fileType = file.type || file.name.split('.').pop().toLowerCase();
-      let text = '';
+    const handleFileSelect = () => {
+        alert('File upload feature is not available yet. Please paste the content directly.');
+    };
 
-      switch (fileType) {
-        case 'text/plain':
-        case 'txt':
-          text = await file.text();
-          break;
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        setIsLoading(true)
 
-        case 'application/pdf':
-        case 'pdf':
-          const arrayBuffer = await file.arrayBuffer();
-          const pdf = await PDFJS.getDocument({ data: arrayBuffer }).promise;
-          const textContent = [];
-          
-          for (let i = 1; i <= pdf.numPages; i++) {
-              const page = await pdf.getPage(i);
-              const content = await page.getTextContent();
-              textContent.push(content.items.map(item => item.str).join(' '));
-          }
-          text = textContent.join('\n');
-          break;
-
-        case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-        case 'docx':
-          const docxArrayBuffer = await file.arrayBuffer();
-          const result = await mammoth.extractRawText({ arrayBuffer: docxArrayBuffer });
-          text = result.value;
-          break;
-
-        case 'application/vnd.ms-excel':
-        case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
-        case 'xls':
-        case 'xlsx':
-          const excelArrayBuffer = await file.arrayBuffer();
-          const workbook = read(excelArrayBuffer);
-          text = workbook.SheetNames
-            .map(name => {
-              const sheet = workbook.Sheets[name];
-              return utils.sheet_to_txt(sheet);
+        try {
+            const response = await fetch(`${API_URL}/api/session`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ resume, jobInfo }),
             })
-            .join('\n\n');
-          break;
 
-        default:
-          throw new Error('Unsupported file type');
-      }
-
-      // Clean up the text
-      text = text
-        .replace(/[\r\n]+/g, '\n')  // Normalize line endings
-        .replace(/\s+/g, ' ')       // Normalize spaces
-        .trim();                    // Remove extra whitespace
-
-      setter(text);
-    } catch (error) {
-      console.error('Error reading file:', error);
-      alert('Error reading file. Please try another file or paste the content directly.');
+            const data = await response.json()
+            if (data.sessionToken) {
+                onSessionStart(data.sessionToken)  // This triggers the component swap in App.jsx
+            } else {
+                throw new Error('No session token received')
+            }
+        } catch (error) {
+            console.error('Failed to start session:', error)
+            alert('Failed to start interview session. Please try again.')
+        } finally {
+            setIsLoading(false)
+        }
     }
-  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
+    return (
+        <Form onSubmit={handleSubmit}>
+            <h2>Setup Interview</h2>
+            
+            {/* Resume Section */}
+            <Section>
+                <SectionTitle>Resume</SectionTitle>
+                <FileInput
+                    type="file"
+                    id="resume-file"
+                    accept=".txt,.pdf,.doc,.docx"
+                    ref={resumeFileRef}
+                    onChange={handleFileSelect}
+                />
+                <FileLabel htmlFor="resume-file">
+                    Click to upload resume file
+                </FileLabel>
+                
+                <OrDivider>or paste resume text</OrDivider>
+                
+                <TextArea
+                    placeholder="Paste your resume here..."
+                    value={resume}
+                    onChange={(e) => setResume(e.target.value)}
+                />
+            </Section>
 
-    try {
-      const response = await fetch(`${API_URL}/api/session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ resume, jobInfo }),
-      })
+            {/* Job Description Section */}
+            <Section>
+                <SectionTitle>Job Description</SectionTitle>
+                <FileInput
+                    type="file"
+                    id="job-file"
+                    accept=".txt,.pdf,.doc,.docx"
+                    ref={jobFileRef}
+                    onChange={handleFileSelect}
+                />
+                <FileLabel htmlFor="job-file">
+                    Click to upload job description file
+                </FileLabel>
+                
+                <OrDivider>or paste job description</OrDivider>
+                
+                <TextArea
+                    placeholder="Paste the job description here..."
+                    value={jobInfo}
+                    onChange={(e) => setJobInfo(e.target.value)}
+                />
+            </Section>
 
-      const data = await response.json()
-      if (data.sessionToken) {
-        onSessionStart(data.sessionToken)  // This triggers the component swap in App.jsx
-      } else {
-        throw new Error('No session token received')
-      }
-    } catch (error) {
-      console.error('Failed to start session:', error)
-      alert('Failed to start interview session. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  return (
-    <Form onSubmit={handleSubmit}>
-      <h2>Setup Interview</h2>
-      
-      {/* Resume Section */}
-      <Section>
-        <SectionTitle>Resume</SectionTitle>
-        <FileInput
-          type="file"
-          id="resume-file"
-          accept=".txt,.pdf,.doc,.docx"
-          ref={resumeFileRef}
-          onChange={(e) => e.target.files[0] && handleFileRead(e.target.files[0], setResume)}
-        />
-        <FileLabel htmlFor="resume-file">
-          {resume ? '✓ Resume uploaded' : 'Click to upload resume file'}
-        </FileLabel>
-        
-        <OrDivider>or paste resume text</OrDivider>
-        
-        <TextArea
-          placeholder="Paste your resume here..."
-          value={resume}
-          onChange={(e) => setResume(e.target.value)}
-        />
-      </Section>
-
-      {/* Job Description Section */}
-      <Section>
-        <SectionTitle>Job Description</SectionTitle>
-        <FileInput
-          type="file"
-          id="job-file"
-          accept=".txt,.pdf,.doc,.docx"
-          ref={jobFileRef}
-          onChange={(e) => e.target.files[0] && handleFileRead(e.target.files[0], setJobInfo)}
-        />
-        <FileLabel htmlFor="job-file">
-          {jobInfo ? '✓ Job description uploaded' : 'Click to upload job description file'}
-        </FileLabel>
-        
-        <OrDivider>or paste job description</OrDivider>
-        
-        <TextArea
-          placeholder="Paste the job description here..."
-          value={jobInfo}
-          onChange={(e) => setJobInfo(e.target.value)}
-        />
-      </Section>
-
-      <Button type="submit" disabled={isLoading || !resume || !jobInfo}>
-        {isLoading ? 'Starting...' : 'Start Interview'}
-      </Button>
-    </Form>
-  );
+            <Button type="submit" disabled={isLoading || !resume || !jobInfo}>
+                {isLoading ? 'Starting...' : 'Start Interview'}
+            </Button>
+        </Form>
+    );
 }
 
 export default SetupForm;
