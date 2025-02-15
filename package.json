@@ -6,11 +6,12 @@
   "scripts": {
     "start": "NODE_ENV=production node ./dist/server/index.js",
     "dev": "ts-node-dev --respawn src/server/index.ts",
-    "build": "npm run build:server && npm run build:client",
+    "build": "npm run build:server && npm run build:client && npm run build:dist",
     "test": "ts-node src/test/testClient.ts",
     "build-client": "tsc src/client/app.ts --outDir src/client/dist",
     "build:server": "tsc -p tsconfig.json",
     "build:client": "cd src/client/frontend && npm run build",
+    "build:dist": "cp -r src/client/frontend/dist/* dist/public/",
     "deploy": "npm run build && eb deploy"
   },
   "keywords": [],
