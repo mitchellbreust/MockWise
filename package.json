@@ -1,19 +1,14 @@
 {
-  "name": "interviewpracapp",
+  "name": "mockwise",
   "version": "1.0.0",
   "description": "Interview practice application with OpenAI integration",
   "main": "src/server/index.ts",
   "scripts": {
-    "start": "node ./dist/server/index.js",
-    "postinstall": "cd src/client/frontend && npm install",
-    "dev": "ts-node-dev --respawn src/server/index.ts",
-    "build": "tsc -p tsconfig.json",
-    "test": "ts-node src/test/testClient.ts",
-    "build-client": "tsc src/client/app.ts --outDir src/client/dist",
-    "build:server": "tsc -p tsconfig.json",
-    "build:client": "cd src/client/frontend && npm run build",
-    "build:dist": "cp -r src/client/frontend/dist/* dist/public/",
-    "deploy": "eb deploy"
+    "clean": "rm -rf dist",
+    "build:frontend": "cd src/client/frontend && npm install && npm run build && mkdir -p ../../../dist && cp -r dist/* ../../../dist/ && rm -rf dist",
+    "build:backend": "tsc && cp package.json dist/ && cd dist && npm install --production",
+    "build": "npm run clean && npm run build:backend && npm run build:frontend",
+    "start": "node dist/server/index.js"
   },
   "keywords": [],
   "author": "",
@@ -31,6 +26,7 @@
     "multer": "^1.4.5-lts.1",
     "openai": "^4.0.0",
     "pdf-parse": "^1.1.1",
+    "typescript": "^5.3.3",
     "uuid": "^9.0.1",
     "winston": "^3.17.0",
     "ws": "^8.16.0",
@@ -45,8 +41,7 @@
     "@types/uuid": "^9.0.8",
     "@types/ws": "^8.5.10",
     "ts-node": "^10.9.2",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.3.3"
+    "ts-node-dev": "^2.0.0"
   },
   "engines": {
     "node": ">=22.0.0"

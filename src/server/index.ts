@@ -9,7 +9,6 @@ import { createWriteStream } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { SessionManager } from './SessionManager';
 import http from 'http'; // Add this import
-import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
 import winston from 'winston';
@@ -46,7 +45,7 @@ const limiter = rateLimit({
 });
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8081;  // Change default port to 8081
 const sessionManager = new SessionManager();
 const apiKey = process.env.OPENAI_API_KEY;
 const assemblyClient = new AssemblyAI({
@@ -60,16 +59,17 @@ const server = http.createServer({
 }, app);
 
 // Security middleware
-app.use(helmet());
 app.use(limiter);
 app.use(morgan('combined'));
 
-// CORS configuration for production
+// CORS configuration
 app.use(cors({
   origin: [
-    ...process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'],
+    'http://localhost:8081',
+    'http://localhost:5173',
     '.elasticbeanstalk.com',
-    'http://mockwise-env.eba-cfmp97zy.us-west-2.elasticbeanstalk.com/'  // Add your specific URL here
+    'http://mockwise-env.eba-cfmp97zy.us-west-2.elasticbeanstalk.com',
+    ...(process.env.ALLOWED_ORIGINS?.split(',') || [])
   ],
   credentials: true,
   methods: ['GET', 'POST'],
@@ -78,8 +78,8 @@ app.use(cors({
 
 app.use(express.json());
 
-// Add static file serving for the frontend
-app.use(express.static(path.join(__dirname, '../../public')));
+// Update static file serving paths
+app.use(express.static(path.join(__dirname, '../')));
 
 // Add health check endpoint at the top of your routes
 app.get('/health', (req, res) => {
@@ -176,9 +176,9 @@ app.post('/api/stream-transcribe', (req, res) => {
     });
 });
 
-// Add this as the last route before error handling
+// Update catch-all route
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../public/index.html'));
+  res.sendFile(path.join(__dirname, '../index.html'));
 });
 
 // Error handling middleware
@@ -192,8 +192,8 @@ app.use((err: Error, req: any, res: any, next: any) => {
 });
 
 // Update server listening with better error handling
-server.listen(process.env.PORT || 8081, () => {
-  console.log(`Server running on port ${process.env.PORT || 8081}`);
+server.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 }).on('error', (error) => {
   console.error('Server failed to start:', error);
   logger.error('Server failed to start:', error);
