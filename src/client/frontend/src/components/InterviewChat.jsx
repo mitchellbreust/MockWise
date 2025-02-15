@@ -308,6 +308,25 @@ const DotAnimation = styled.div`
   }
 `;
 
+const WarningBanner = styled.div`
+  background-color: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  color: #92400e;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+`;
+
 function InterviewChat({ sessionToken, resume, jobInfo }) {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
@@ -329,6 +348,7 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
     const mediaStreamSource = useRef(null);
     const scriptProcessor = useRef(null);
     const [isTranscribing, setIsTranscribing] = useState(false);
+    const [hasMicrophoneAccess, setHasMicrophoneAccess] = useState(null);
 
     const setupConnection = async () => {
         try {
@@ -424,13 +444,14 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
                         6. Provide constructive feedback after each answer
                         7. If needed, ask for clarification or more details
                         8. If possible, and found necessary, ask a follow-up question based on the candidate's response
+                        9. Your name is Ash.
                         
                         Context:
                         Resume: ${resume}
                         Job Description: ${jobInfo}
                         
                         Format: Natural conversational language, no prefixes or labels.`,
-                    voice: "alloy"
+                    voice: "ash"
                 }
             }));
         };
@@ -590,8 +611,23 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
         };
     }, [sessionToken]);
 
+    useEffect(() => {
+        // Check microphone access when component mounts
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(() => setHasMicrophoneAccess(true))
+            .catch(() => setHasMicrophoneAccess(false));
+    }, []);
+
     return (
         <ChatContainer>
+            {hasMicrophoneAccess === false && (
+                <WarningBanner>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-2h2v2h-2zm0-10v6h2V7h-2z"/>
+                    </svg>
+                    Microphone access is disabled. Voice input features will not be available. Please check your browser settings to enable microphone access.
+                </WarningBanner>
+            )}
             <MessagesContainer>
                 {messages.map((msg, i) => (
                     <MessageGroup key={i} $isUser={msg.type === 'user'}>
@@ -635,8 +671,8 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
                 <MicButton
                     onClick={toggleRecording}
                     $isRecording={isRecording}
-                    disabled={!isConnected}
-                    $disabled={!isConnected}
+                    disabled={!isConnected || !hasMicrophoneAccess}
+                    $disabled={!isConnected || !hasMicrophoneAccess}
                 >
                     {isRecording && <RecordingPulse $isRecording />}
                     <svg 

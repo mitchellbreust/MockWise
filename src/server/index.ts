@@ -9,12 +9,41 @@ import { createWriteStream } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { SessionManager } from './SessionManager';
 import http from 'http'; // Add this import
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import morgan from 'morgan';
+import winston from 'winston';
 
 // Check environment variables after imports
 if (!process.env.OPENAI_API_KEY || !process.env.ASSEMBLYAI_API_KEY) {
     console.error('OPENAI_API_KEY environment variable is missing');
     process.exit(1);
 }
+
+// Setup logging
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' })
+  ]
+});
+
+if (process.env.NODE_ENV !== 'production') {
+  logger.add(new winston.transports.Console({
+    format: winston.format.simple()
+  }));
+}
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -30,10 +59,19 @@ const server = http.createServer({
     keepAliveTimeout: 310000, // Keep alive slightly longer than request timeout
 }, app);
 
+// Security middleware
+app.use(helmet());
+app.use(limiter);
+app.use(morgan('combined'));
+
+// CORS configuration for production
 app.use(cors({
-    origin: ['http://localhost:5173'],  // Add your Vite dev server port
-    credentials: true
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'],
+  credentials: true,
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json());
 
 // Only two endpoints needed
@@ -124,6 +162,16 @@ app.post('/api/stream-transcribe', (req, res) => {
         fs.unlink(tempFile).catch(console.error);
         res.status(500).json({ error: 'Stream processing failed' });
     });
+});
+
+// Error handling middleware
+app.use((err: Error, req: any, res: any, next: any) => {
+  logger.error(err.stack);
+  res.status(500).json({
+    error: process.env.NODE_ENV === 'production' 
+      ? 'Internal Server Error' 
+      : err.message
+  });
 });
 
 server.listen(port, () => console.log(`Server running on port ${port}`));
