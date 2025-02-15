@@ -1,26 +1,34 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { AssemblyAI } from 'assemblyai';
-import multer from 'multer';
+import { AssemblyAI, SpeechModel, TranscribeParams, AudioToTranscribe } from 'assemblyai';
 import path from 'path';
 import { promises as fs } from 'fs';
 import os from 'os';
 import { createWriteStream } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-
 import { SessionManager } from './SessionManager';
+import http from 'http'; // Add this import
 
+// Check environment variables after imports
+if (!process.env.OPENAI_API_KEY || !process.env.ASSEMBLYAI_API_KEY) {
+    console.error('OPENAI_API_KEY environment variable is missing');
+    process.exit(1);
+}
 
 const app = express();
 const port = process.env.PORT || 3000;
 const sessionManager = new SessionManager();
+const apiKey = process.env.OPENAI_API_KEY;
 const assemblyClient = new AssemblyAI({
-    apiKey: '3f65148e76764d21b1611d48e2bc195e'
-});
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+    apiKey: process.env.ASSEMBLYAI_API_KEY,
+  });
 
+const server = http.createServer({
+    // Force HTTP/1.1
+    requestTimeout: 300000, // 5 minutes timeout for long requests
+    keepAliveTimeout: 310000, // Keep alive slightly longer than request timeout
+}, app);
 
 app.use(cors({
     origin: ['http://localhost:5173'],  // Add your Vite dev server port
@@ -69,72 +77,31 @@ app.post('/api/webrtc/init', async (req, res) => {
     }
 });
 
-app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'No audio file provided' });
-    }
-
-    try {
-        // Create temp directory if it doesn't exist
-        const tempDir = path.join(os.tmpdir(), 'interview-recordings');
-        await fs.mkdir(tempDir, { recursive: true });
-
-        // Create temporary file
-        const tempFile = path.join(tempDir, `recording-${Date.now()}.webm`);
-        await fs.writeFile(tempFile, req.file.buffer);
-
-        try {
-            // Transcribe using AssemblyAI
-            const data = {
-                audio: tempFile,
-                speech_model: 'nano'
-            };
-
-            const transcript = await assemblyClient.transcripts.transcribe(data);
-
-            // Send response
-            res.json({
-                success: true,
-                text: transcript.text
-            });
-
-        } finally {
-            // Clean up temp file
-            await fs.unlink(tempFile).catch(console.error);
-        }
-
-    } catch (error) {
-        console.error('Transcription error:', error);
-        res.status(500).json({
-            error: 'Transcription failed',
-            details: error instanceof Error ? error.message : String(error)
-        });
-    }
-});
-
 // Add streaming audio endpoint
 app.post('/api/stream-transcribe', (req, res) => {
+    // Set proper headers for HTTP/1.1
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
     const fileId = uuidv4();
     const tempFile = path.join(os.tmpdir(), `stream-${fileId}.webm`);
     const writeStream = createWriteStream(tempFile);
     
-    req.on('data', chunk => {
-        writeStream.write(chunk);
-    });
+    // Pipe the request directly to the file
+    req.pipe(writeStream);
 
     req.on('end', async () => {
-        writeStream.end();
-
         try {
-            // Transcribe the complete file
+            // Wait for write to finish
+            await new Promise(resolve => writeStream.end(resolve));
+            
             const data = {
                 audio: tempFile,
                 speech_model: 'nano'
-            };
+            } as any;
 
             const transcript = await assemblyClient.transcripts.transcribe(data);
             
-            // Send response
             res.json({
                 success: true,
                 text: transcript.text
@@ -147,7 +114,6 @@ app.post('/api/stream-transcribe', (req, res) => {
                 details: error instanceof Error ? error.message : String(error)
             });
         } finally {
-            // Clean up
             fs.unlink(tempFile).catch(console.error);
         }
     });
@@ -160,4 +126,4 @@ app.post('/api/stream-transcribe', (req, res) => {
     });
 });
 
-app.listen(port, () => console.log(`Server running on port ${port}`));
+server.listen(port, () => console.log(`Server running on port ${port}`));

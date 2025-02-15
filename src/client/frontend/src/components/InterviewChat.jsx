@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { API_URL } from '../config';
-import { config } from 'dotenv';
 
 const ChatContainer = styled.div`
   width: 100%;
@@ -277,6 +276,38 @@ const MicButton = styled.button`
     }
 `;
 
+const TranscribingIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f0f0f0;
+  border-radius: 20px;
+  color: #666;
+  font-style: italic;
+`;
+
+const DotAnimation = styled.div`
+  display: inline-flex;
+  gap: 4px;
+  
+  span {
+    width: 4px;
+    height: 4px;
+    background: #666;
+    border-radius: 50%;
+    animation: dotPulse 1.4s infinite;
+    
+    &:nth-child(2) { animation-delay: 0.2s; }
+    &:nth-child(3) { animation-delay: 0.4s; }
+  }
+
+  @keyframes dotPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(0.5); opacity: 0.5; }
+  }
+`;
+
 function InterviewChat({ sessionToken, resume, jobInfo }) {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
@@ -289,6 +320,15 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
     const transcriptQueue = useRef([]);
     const isProcessingTranscript = useRef(false);
     const [isRecording, setIsRecording] = useState(false); // Keep for UI only
+    const mediaRecorder = useRef(null);
+    const audioChunks = useRef([]);
+    const localAudioFile = useRef(null);
+    const mediaStream = useRef(null);
+    const chunkInterval = useRef(null);
+    const audioContext = useRef(null);
+    const mediaStreamSource = useRef(null);
+    const scriptProcessor = useRef(null);
+    const [isTranscribing, setIsTranscribing] = useState(false);
 
     const setupConnection = async () => {
         try {
@@ -378,10 +418,12 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
                     instructions: `You are a technical interviewer conducting a job interview. Your role is to:
                         1. First, briefly introduce yourself as the interviewer and state the position being interviewed for
                         2. Use the candidate's resume to ask targeted questions about their experience
-                        3. Reference specific projects and skills from their resume
+                        3. Reference specific things on resume
                         4. Ask questions that evaluate their fit for the job requirements
                         5. Keep responses focused and professional
                         6. Provide constructive feedback after each answer
+                        7. If needed, ask for clarification or more details
+                        8. If possible, and found necessary, ask a follow-up question based on the candidate's response
                         
                         Context:
                         Resume: ${resume}
@@ -402,6 +444,13 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
                 dc.send(JSON.stringify({
                     type: "response.create",
                     response: {
+                        modalities: ["text", "audio"]
+                    }
+                }));
+            } else if (data.type === 'conversation.item.created') {
+                dataChannel.current.send(JSON.stringify({
+                    type: "response.create",
+                    response: { 
                         modalities: ["text", "audio"]
                     }
                 }));
@@ -439,26 +488,105 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
             }
         }));
 
-        dataChannel.current.send(JSON.stringify({
-            type: "response.create",
-            response: { 
-                modalities: ["text", "audio"]
-            }
-        }));
-
         setMessages(prev => [...prev, { text: input, type: 'user' }]);
         setInput('');
     };
 
-    // Simplified toggle for UI only
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaStream.current = stream;
+            mediaRecorder.current = new MediaRecorder(stream);
+            audioChunks.current = [];
+
+            // Set up Web Audio API
+            audioContext.current = new AudioContext();
+            mediaStreamSource.current = audioContext.current.createMediaStreamSource(stream);
+            // Ignore deprecation warning since AudioWorklet isn't widely supported yet
+            scriptProcessor.current = audioContext.current.createScriptProcessor(4096, 1, 1);
+
+            mediaRecorder.current.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunks.current.push(event.data);
+                }
+            };
+
+            scriptProcessor.current.onaudioprocess = () => {
+                // Just to keep the audio context alive
+            };
+
+            // Connect nodes
+            mediaStreamSource.current.connect(scriptProcessor.current);
+            scriptProcessor.current.connect(audioContext.current.destination);
+
+            mediaRecorder.current.onstop = async () => {
+                const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
+                try {
+                    const response = await fetch(`${API_URL}/api/stream-transcribe`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'audio/webm' },
+                        body: audioBlob
+                    });
+
+                    if (response.ok) {
+                        const { text } = await response.json();
+                        setMessages(prev => [...prev, { text, type: 'user' }]);
+                        dataChannel.current?.send(JSON.stringify({
+                            type: "conversation.item.create",
+                            item: {
+                                type: "message",
+                                role: "user",
+                                content: [{ type: "input_text", text }]
+                            }
+                        }));
+                    }
+                } catch (error) {
+                    console.error('Transcription error:', error);
+                } finally {
+                    setIsTranscribing(false); // Stop transcribing animation
+                }
+            };
+
+            mediaRecorder.current.start(1000);
+            setIsRecording(true);
+        } catch (error) {
+            console.error('Failed to start recording:', error);
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
+            setIsTranscribing(true); // Start transcribing animation
+            mediaRecorder.current.stop();
+        }
+        if (mediaStream.current) {
+            mediaStream.current.getTracks().forEach(track => track.stop());
+        }
+        if (scriptProcessor.current) {
+            scriptProcessor.current.disconnect();
+        }
+        if (audioContext.current) {
+            audioContext.current.close();
+        }
+        setIsRecording(false);
+    };
+
+    // Replace the existing toggleRecording function
     const toggleRecording = () => {
-        setIsRecording(!isRecording);
+        if (isRecording) {
+            stopRecording();
+        } else {
+            startRecording();
+        }
     };
 
     useEffect(() => {
         setupConnection();
         return () => {
             peerConnection.current?.close();
+            if (mediaRecorder.current) {
+                stopRecording();
+            }
         };
     }, [sessionToken]);
 
@@ -472,6 +600,18 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
                         </Message>
                     </MessageGroup>
                 ))}
+                {isTranscribing && (
+                    <MessageGroup $isUser={true}>
+                        <TranscribingIndicator>
+                            Transcribing
+                            <DotAnimation>
+                                <span />
+                                <span />
+                                <span />
+                            </DotAnimation>
+                        </TranscribingIndicator>
+                    </MessageGroup>
+                )}
                 {/* Show live transcription */}
                 {currentTranscript && (
                     <MessageGroup $isUser={false}>
