@@ -14,6 +14,10 @@ const AppContainer = styled.div`
   justify-content: start;
   box-sizing: border-box;
 
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
+
   @media (prefers-color-scheme: dark) {
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   }
@@ -26,6 +30,11 @@ const Title = styled.h1`
   font-size: 2.5rem;
   font-weight: 700;
   text-shadow: var(--shadow-sm);
+
+  @media (max-width: 768px) {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+  }
 `;
 
 function App() {

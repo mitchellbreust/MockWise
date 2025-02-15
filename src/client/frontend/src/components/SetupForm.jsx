@@ -20,6 +20,16 @@ const Form = styled.form`
     font-size: 1.8rem;
     font-weight: 600;
   }
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+    width: 90%;
+
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+  }
 `;
 
 const TextArea = styled.textarea`
@@ -44,6 +54,11 @@ const TextArea = styled.textarea`
 
   &::placeholder {
     color: var(--text-secondary);
+  }
+
+  @media (max-width: 768px) {
+    min-height: 100px;
+    font-size: 0.95rem;
   }
 `;
 
@@ -120,10 +135,20 @@ const FileLabel = styled.label`
     color: var(--primary-color);
     background: rgba(255, 255, 255, 0.02);
   }
+
+  @media (max-width: 768px) {
+    width: 90%;
+    padding: 1.5rem;
+    font-size: 0.9rem;
+  }
 `;
 
 const Section = styled.div`
   margin-bottom: 3rem;  // Increased from 2rem
+
+  @media (max-width: 768px) {
+    margin-bottom: 2rem;
+  }
 `;
 
 const SectionTitle = styled.h3`
@@ -133,6 +158,10 @@ const SectionTitle = styled.h3`
   font-weight: 500;
   text-decoration: underline;
   text-decoration-underline-gap: 0.5rem;
+
+  @media (max-width: 768px) {
+    font-size: 1.1rem;
+  }
 `;
 
 const InputGroup = styled.div`

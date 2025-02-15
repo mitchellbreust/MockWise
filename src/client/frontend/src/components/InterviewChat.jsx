@@ -20,6 +20,11 @@ const ChatContainer = styled.div`
   @media (prefers-color-scheme: dark) {
     background: linear-gradient(to bottom, #1e293b, #0f172a);
   }
+
+  @media (max-width: 768px) {
+    padding: 12px;
+    height: 85vh; // More height on mobile
+  }
 `;
 
 const MessagesContainer = styled.div`
@@ -45,6 +50,10 @@ const MessagesContainer = styled.div`
   &::-webkit-scrollbar-thumb {
     background: var(--text-secondary);
     border-radius: 4px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 12px;
   }
 `;
 
@@ -78,6 +87,11 @@ const Message = styled.div`
   ` : `
     border-bottom-left-radius: 4px;
   `}
+
+  @media (max-width: 768px) {
+    padding: 10px 14px;
+    font-size: 0.95rem;
+  }
 `;
 
 const AudioPlayer = styled.div`
@@ -120,6 +134,11 @@ const InputArea = styled.div`
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 0 0 16px 16px;
   backdrop-filter: blur(8px);
+
+  @media (max-width: 768px) {
+    padding: 12px;
+    gap: 8px;
+  }
 `;
 
 const Input = styled.textarea`
@@ -139,6 +158,11 @@ const Input = styled.textarea`
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+  }
+
+  @media (max-width: 768px) {
+    min-height: 48px;
+    font-size: 0.95rem;
   }
 `;
 
@@ -162,6 +186,11 @@ const Button = styled.button`
 
   &:active:not(:disabled) {
     transform: translateY(0);
+  }
+
+  @media (max-width: 768px) {
+    padding: 0 15px;
+    font-size: 0.9rem;
   }
 `;
 
@@ -235,6 +264,16 @@ const MicButton = styled.button`
         ${props => props.$isRecording && `
             transform: scale(0.85);
         `}
+    }
+
+    @media (max-width: 768px) {
+        width: 42px;
+        height: 42px;
+        
+        svg {
+          width: 28px;
+          height: 28px;
+        }
     }
 `;
 
