@@ -1,16 +1,29 @@
-
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
 /node_modules
 /.pnp
 .pnp.js
+node_modules/
+src/client/frontend/node_modules/
 
 # testing
 /coverage
 
 # production
 /build
+dist/
+src/client/frontend/dist/
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/config.yml
+!.elasticbeanstalk/*.global.yml
+
+# Logs
+*.log
+combined.log
+error.log
 
 # misc
 .DS_Store

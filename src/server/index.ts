@@ -66,13 +66,22 @@ app.use(morgan('combined'));
 
 // CORS configuration for production
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'],
+  origin: [
+    ...process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'],
+    '.elasticbeanstalk.com',
+    'http://mockwise-env.eba-cfmp97zy.us-west-2.elasticbeanstalk.com/'  // Add your specific URL here
+  ],
   credentials: true,
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
+
+// Add health check endpoint at the top of your routes
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
+});
 
 // Only two endpoints needed
 app.post('/api/session', (req, res) => {
@@ -174,4 +183,10 @@ app.use((err: Error, req: any, res: any, next: any) => {
   });
 });
 
-server.listen(port, () => console.log(`Server running on port ${port}`));
+// Update server listening with better error handling
+server.listen(process.env.PORT || 8081, () => {
+  console.log(`Server running on port ${process.env.PORT || 8081}`);
+}).on('error', (error) => {
+  console.error('Server failed to start:', error);
+  logger.error('Server failed to start:', error);
+});
