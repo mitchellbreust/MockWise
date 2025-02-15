@@ -4,16 +4,16 @@
   "description": "Interview practice application with OpenAI integration",
   "main": "src/server/index.ts",
   "scripts": {
-    "start": "NODE_ENV=production node ./dist/server/index.js",
+    "start": "node ./dist/server/index.js",
     "postinstall": "cd src/client/frontend && npm install",
     "dev": "ts-node-dev --respawn src/server/index.ts",
-    "build": "mkdir -p dist/public && npm run build:server && npm run build:client && npm run build:dist",
+    "build": "tsc -p tsconfig.json",
     "test": "ts-node src/test/testClient.ts",
     "build-client": "tsc src/client/app.ts --outDir src/client/dist",
     "build:server": "tsc -p tsconfig.json",
     "build:client": "cd src/client/frontend && npm run build",
     "build:dist": "cp -r src/client/frontend/dist/* dist/public/",
-    "deploy": "npm run build && eb deploy"
+    "deploy": "eb deploy"
   },
   "keywords": [],
   "author": "",
