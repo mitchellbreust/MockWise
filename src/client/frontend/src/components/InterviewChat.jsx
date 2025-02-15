@@ -281,7 +281,6 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isConnected, setIsConnected] = useState(false);
-    const [audioMessages, setAudioMessages] = useState(new Map());
     const [currentTranscript, setCurrentTranscript] = useState('');
     const peerConnection = useRef(null);
     const dataChannel = useRef(null);
@@ -289,29 +288,25 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
     const [isPlaying, setIsPlaying] = useState(false);
     const transcriptQueue = useRef([]);
     const isProcessingTranscript = useRef(false);
-    const [isRecording, setIsRecording] = useState(false);
-    const [hasMicPermission, setHasMicPermission] = useState(false);
-    const mediaRecorder = useRef(null);
+    const [isRecording, setIsRecording] = useState(false); // Keep for UI only
 
     const setupConnection = async () => {
         try {
-            // Get token
             const response = await fetch(`${API_URL}/api/webrtc/init`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${sessionToken}` }
             });
             const { ephemeralToken, baseUrl, model } = await response.json();
 
-            // Create and store peer connection
             const pc = new RTCPeerConnection({
                 iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
             });
             peerConnection.current = pc;
 
-            // Set up audio with controls
+            // Set up audio element for output only
             const audioEl = document.createElement('audio');
-            audioEl.autoplay = false; // Disable autoplay
-            audioEl.controls = false; // Hide native controls
+            audioEl.autoplay = true;
+            document.body.appendChild(audioEl);
             outputAudioRef.current = audioEl;
             
             pc.ontrack = e => {
@@ -319,23 +314,16 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
                 audioEl.srcObject = e.streams[0];
             };
 
-            // Add local audio track
-            const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-                .catch(() => {
-                    console.log('Using dummy audio');
-                    const ctx = new AudioContext();
-                    const dst = ctx.createMediaStreamDestination();
-                    return dst.stream;
-                });
-            audioStream.getTracks().forEach(track => pc.addTrack(track, audioStream));
-
             // Create data channel
             const dc = pc.createDataChannel('oai-events');
             configDc(dc);
             dataChannel.current = dc;
 
-            // Complete WebRTC setup
-            const offer = await pc.createOffer();
+            const offer = await pc.createOffer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: false
+            });
+            
             await pc.setLocalDescription(offer);
             
             const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
@@ -382,7 +370,6 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
     const configDc = (dc) => {
         dc.onopen = () => {
             console.log('Connected');
-            setIsConnected(true);
             
             // Send session update
             dc.send(JSON.stringify({
@@ -424,9 +411,11 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
                 setCurrentTranscript('');
                 setIsPlaying(true);
                 outputAudioRef.current?.play();
+                setIsConnected(false);
             } else if (data.type === 'output_audio_buffer.stopped') {
                 setIsPlaying(false);
                 outputAudioRef.current?.pause();
+                setIsConnected(true);
             } else if (data.type === 'response.audio_transcript.delta') {
                 // Queue transcript chunks instead of updating immediately
                 if (data.delta) {
@@ -461,65 +450,15 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
         setInput('');
     };
 
-    const checkMicPermission = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            setHasMicPermission(true);
-            stream.getTracks().forEach(track => track.stop());
-        } catch (err) {
-            console.log('Mic permission denied:', err);
-            setHasMicPermission(false);
-        }
-    };
-
-    const toggleRecording = async () => {
-        if (isRecording) {
-            mediaRecorder.current?.stop();
-            setIsRecording(false);
-        } else {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder.current = new MediaRecorder(stream);
-                
-                mediaRecorder.current.ondataavailable = (event) => {
-                    if (event.data.size > 0) {
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                            const base64Audio = reader.result.split(',')[1];
-                            dataChannel.current?.send(JSON.stringify({
-                                type: "input_audio_buffer.append",
-                                audio: base64Audio
-                            }));
-                        };
-                        reader.readAsDataURL(event.data);
-                    }
-                };
-
-                mediaRecorder.current.onstop = () => {
-                    stream.getTracks().forEach(track => track.stop());
-                    dataChannel.current?.send(JSON.stringify({
-                        type: "input_audio_buffer.commit"
-                    }));
-                    dataChannel.current?.send(JSON.stringify({
-                        type: "response.create",
-                        response: { modalities: ["text", "audio"] }
-                    }));
-                };
-
-                mediaRecorder.current.start(250); // Send chunks every 250ms
-                setIsRecording(true);
-            } catch (err) {
-                console.error('Failed to start recording:', err);
-            }
-        }
+    // Simplified toggle for UI only
+    const toggleRecording = () => {
+        setIsRecording(!isRecording);
     };
 
     useEffect(() => {
-        checkMicPermission();
         setupConnection();
         return () => {
             peerConnection.current?.close();
-            audioMessages.forEach(url => URL.revokeObjectURL(url));
         };
     }, [sessionToken]);
 
@@ -556,8 +495,8 @@ function InterviewChat({ sessionToken, resume, jobInfo }) {
                 <MicButton
                     onClick={toggleRecording}
                     $isRecording={isRecording}
-                    disabled={!isConnected || !hasMicPermission}
-                    $disabled={!isConnected || !hasMicPermission}
+                    disabled={!isConnected}
+                    $disabled={!isConnected}
                 >
                     {isRecording && <RecordingPulse $isRecording />}
                     <svg 
