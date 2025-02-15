@@ -30,14 +30,16 @@ const Title = styled.h1`
 
 function App() {
   const [sessionToken, setSessionToken] = useState(null)
+  const [resume, setResume] = useState('');
+  const [jobInfo,  setJobInfo] = useState('');
 
   return (
     <AppContainer>
       <Title>MockWise: Interview Practice</Title>
       {!sessionToken ? (
-        <SetupForm onSessionStart={setSessionToken} />
+        <SetupForm onSessionStart={setSessionToken} setResume={setResume}  setJobInfo={setJobInfo} />
       ) : (
-        <InterviewChat sessionToken={sessionToken} />
+        <InterviewChat sessionToken={sessionToken} resume={resume} jobInfo={jobInfo} />
       )}
     </AppContainer>
   )

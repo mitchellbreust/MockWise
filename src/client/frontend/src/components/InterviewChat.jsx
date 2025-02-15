@@ -238,7 +238,7 @@ const MicButton = styled.button`
     }
 `;
 
-function InterviewChat({ sessionToken }) {
+function InterviewChat({ sessionToken, resume, jobInfo }) {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isConnected, setIsConnected] = useState(false);
@@ -349,7 +349,16 @@ function InterviewChat({ sessionToken }) {
             dc.send(JSON.stringify({
                 type: "session.update",
                 session: {
-                    instructions: "You are a technical interviewer.",
+                    instructions: "You are an interviewer. Your task is to generate ONE focused interview question at a time that:\n"
+                                    + "- Generate ONE focused interview question at a time that directly relates to the candidate's resume experience and matches the job requirements.\n"
+                                    + "- Build on previous conversation context.\n"
+                                    + "- Use natural conversational language for voice output.\n"
+                                    + "- Recognize when the user asks for feedback or a better way to phrase their answer, and provide constructive feedback before moving on to the next question.\n"
+                                    + "Format: Add no prefix, make it just natural conversation language that is to be spoken.\n\n" 
+                                    + "Candidate's resume: [Start resume]\n" + resume + "\n[End resume]\n\n"
+                                    + "Job description: [Start job description]\n" + jobInfo + "\n[End job description]" + "\n\n"
+                                    + "This is the start of the conversation so welcome the user and ask them to introduce themselves.",
+
                     voice: "alloy"
                 }
             }));

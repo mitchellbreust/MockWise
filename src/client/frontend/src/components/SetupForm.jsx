@@ -165,9 +165,9 @@ const OrDivider = styled.div`
   }
 `;
 
-function SetupForm({ onSessionStart }) {
-    const [resume, setResume] = useState('');
-    const [jobInfo, setJobInfo] = useState('');
+function SetupForm({ onSessionStart, setResume,  setJobInfo }) {
+    const [tmpResume, setTmpResume] = useState('');
+    const [tmpJobInfo, setTmpJobInfo] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const resumeFileRef = useRef(null);
     const jobFileRef = useRef(null);
@@ -186,12 +186,14 @@ function SetupForm({ onSessionStart }) {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ resume, jobInfo }),
+                body: JSON.stringify({ resume: tmpResume, jobInfo: tmpJobInfo }),
             })
 
             const data = await response.json()
             if (data.sessionToken) {
-                onSessionStart(data.sessionToken)  // This triggers the component swap in App.jsx
+              setResume(tmpResume);
+              setJobInfo(tmpJobInfo);
+              onSessionStart(data.sessionToken)  // This triggers the component swap in App.jsx
             } else {
                 throw new Error('No session token received')
             }
@@ -225,8 +227,8 @@ function SetupForm({ onSessionStart }) {
                 
                 <TextArea
                     placeholder="Paste your resume here..."
-                    value={resume}
-                    onChange={(e) => setResume(e.target.value)}
+                    value={tmpResume}
+                    onChange={(e) => setTmpResume(e.target.value)}
                 />
             </Section>
 
@@ -248,12 +250,12 @@ function SetupForm({ onSessionStart }) {
                 
                 <TextArea
                     placeholder="Paste the job description here..."
-                    value={jobInfo}
-                    onChange={(e) => setJobInfo(e.target.value)}
+                    value={tmpJobInfo}
+                    onChange={(e) => setTmpJobInfo(e.target.value)}
                 />
             </Section>
 
-            <Button type="submit" disabled={isLoading || !resume || !jobInfo}>
+            <Button type="submit" disabled={isLoading || !tmpResume || !tmpJobInfo}>
                 {isLoading ? 'Starting...' : 'Start Interview'}
             </Button>
         </Form>
