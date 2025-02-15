@@ -78,6 +78,9 @@ app.use(cors({
 
 app.use(express.json());
 
+// Add static file serving for the frontend
+app.use(express.static(path.join(__dirname, '../../public')));
+
 // Add health check endpoint at the top of your routes
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy' });
@@ -171,6 +174,11 @@ app.post('/api/stream-transcribe', (req, res) => {
         fs.unlink(tempFile).catch(console.error);
         res.status(500).json({ error: 'Stream processing failed' });
     });
+});
+
+// Add this as the last route before error handling
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../public/index.html'));
 });
 
 // Error handling middleware
