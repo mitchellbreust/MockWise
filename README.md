@@ -43,20 +43,30 @@ MockWise is an innovative interviewing assistant that leverages real-time AI to 
    git clone https://github.com/mitchellbreust/MockWise.git
    cd app
    ```
+
 2. **Set up frontend:**
+   
   ```bash
   cd ./frontend
   npm install
   npm run build
   cd ../
   ```
+
 3. **Set up Server:**
+
    ```bash
    cd ./api
    go mod download
    ```
-4. **Create a .env & run**
+  
+5. **Create a .env & run**
    - In the .env set API_KEY, TRANSCRIBE_API
-   - Then: go run
+   - Then:
+     
+       ```bash
+       go run .
+       ```
+       
 
 
