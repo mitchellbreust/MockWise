@@ -11,8 +11,9 @@ func main() {
 	// Load variables from .env file into environment
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+		log.Println("Warning: No .env file found. Using system environment variables.")
 	}
+	
 
 	fs := http.FileServer(http.Dir("../dist"))
     http.Handle("/", fs)
