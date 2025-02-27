@@ -5,9 +5,15 @@ import (
 	"net/http"
 	"github.com/joho/godotenv"
 	"log"
+	"os"
 )
 
 func main() {
+	port := os.Getenv("PORT") // Get Railway’s assigned port
+    if port == "" {
+        port = "8080" // Default to 8080 for local testing
+    }
+
 	// Load variables from .env file into environment
 	err := godotenv.Load()
 	if err != nil {
@@ -20,6 +26,6 @@ func main() {
 
 	http.HandleFunc("/create-interview", HandleStartNewInt)
 	http.HandleFunc("/stream-transcribe", HandleTranscribeAudio)
-	fmt.Println("Server started on 8080")
-    http.ListenAndServe(":8080", nil)
+	fmt.Println("Server started on " + port)
+    http.ListenAndServe(":"+port, nil)
 }
