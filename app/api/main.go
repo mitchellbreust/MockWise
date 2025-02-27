@@ -8,6 +8,23 @@ import (
 	"os"
 )
 
+// CORS Middleware
+func enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "https://mock-wise.online") // Allow frontend domain
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		// Handle preflight OPTIONS request
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 	port := os.Getenv("PORT") // Get Railway’s assigned port
     if port == "" {
@@ -20,12 +37,14 @@ func main() {
 		log.Println("Warning: No .env file found. Using system environment variables.")
 	}
 	
-
 	fs := http.FileServer(http.Dir("../dist"))
-    http.Handle("/", fs)
 
-	http.HandleFunc("/create-interview", HandleStartNewInt)
-	http.HandleFunc("/stream-transcribe", HandleTranscribeAudio)
+	// Apply CORS middleware
+	mux := http.NewServeMux()
+	mux.Handle("/", fs)
+	mux.HandleFunc("/create-interview", HandleStartNewInt)
+	mux.HandleFunc("/stream-transcribe", HandleTranscribeAudio)
+
 	fmt.Println("Server started on " + port)
-    http.ListenAndServe(":"+port, nil)
+	http.ListenAndServe(":"+port, enableCORS(mux))
 }
