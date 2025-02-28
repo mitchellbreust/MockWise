@@ -2,6 +2,10 @@
 
 MockWise is an innovative interviewing assistant that leverages real-time AI to simulate an interactive interview experience. It sends audio prompts to the user and listens for real-time responses, tailoring questions based on the user's resume and job information.
 
+## Visit live site
+https://mock-wise.online/
+
+
 ## Features
 
 - **Real-Time Audio Interaction:**  
