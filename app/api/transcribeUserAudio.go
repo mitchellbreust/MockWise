@@ -22,21 +22,31 @@ func HandleTranscribeAudio(resW http.ResponseWriter, req *http.Request) {
         return
     }
 
-	// Verify cookie
-	cookie, err := req.Cookie("session_token")
-	if err != nil {
-		http.Error(resW, "Unauthorized: missing session token", http.StatusUnauthorized)
-		return
-	}
-	err = session.VerifyToken(cookie.Value)
-	if err != nil {
-		http.Error(resW, "Bad token: " + err.Error(), 400)
-		return
-	}
-
 	// Verify Content-Type header
 	if req.Header.Get("Content-Type") != "audio/webm" {
 		http.Error(resW, "Unsupported content type", http.StatusBadRequest)
+		return
+	}
+
+	// Extract session token from Authorization header instead of cookies
+	authHeader := req.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(resW, "Unauthorized: missing Authorization header", http.StatusUnauthorized)
+		return
+	}
+
+	// Remove "Bearer " prefix from token (if present)
+	token := ""
+	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+		token = authHeader[7:]
+	} else {
+		token = authHeader
+	}
+
+	// Verify session token
+	err := session.VerifyToken(token)
+	if err != nil {
+		http.Error(resW, "Bad token: " + err.Error(), 400)
 		return
 	}
 

@@ -40,9 +40,11 @@ const useAudioRecorder = (API_URL, dataChannel, setMessages) => {
             mediaRecorder.current.onstop = async () => {
                 const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
                 try {
+                    const sessionToken = sessionStorage.getItem("session_token");
+
                     const response = await fetch(`${API_URL}/stream-transcribe`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'audio/webm' },
+                        headers: { 'Content-Type': 'audio/webm', 'Authorization': `Bearer ${sessionToken}` },
                         body: audioBlob,
                         credentials: "include"
                     });

@@ -105,8 +105,14 @@ const FileInput = styled.input`
   display: none;
 `;
 
+const FileLabelContainer = styled.div`
+  width: 100%;  
+  display: flex;
+  justify-content: center;  
+`;
+
 const FileLabel = styled.label`
-  width: 100%;
+  width: 100%;  /* Ensures it stays inside the form */
   padding: 1.5rem;
   border: 2px dashed var(--border);
   border-radius: 8px;
@@ -118,6 +124,7 @@ const FileLabel = styled.label`
   align-items: center;
   justify-content: center;
   font-size: 1rem;
+  box-sizing: border-box; /* Ensures it doesn't overflow */
 
   &:hover {
     border-color: var(--primary-color);
@@ -132,7 +139,12 @@ const FileLabel = styled.label`
 `;
 
 const Section = styled.div`
-  margin-bottom: 3rem;  // Increased from 2rem
+  width: 100%;
+  margin-bottom: 3rem;  
+  display: flex;
+  flex-direction: column; /* Ensures all elements stay inside */
+  align-items: center;
+
   @media (max-width: 768px) {
     margin-bottom: 2rem;
   }
@@ -198,6 +210,8 @@ function SetupForm({ onSessionStart, setResume,  setJobInfo, setEphemeralToken }
 
             const data = await response.json()
             if (data.session && data.token) {
+              sessionStorage.setItem("session_token", data.session);
+              
               setResume(tmpResume);
               setJobInfo(tmpJobInfo);
               setEphemeralToken(data.token)
@@ -227,9 +241,12 @@ function SetupForm({ onSessionStart, setResume,  setJobInfo, setEphemeralToken }
                     ref={resumeFileRef}
                     onChange={handleFileSelect}
                 />
-                <FileLabel htmlFor="resume-file">
-                    Click to upload resume file
-                </FileLabel>
+
+                <FileLabelContainer>
+                    <FileLabel htmlFor="resume-file">
+                        Click to upload resume file
+                    </FileLabel>
+                </FileLabelContainer>
 
                 <OrDivider>or paste resume text</OrDivider>
 
@@ -250,9 +267,12 @@ function SetupForm({ onSessionStart, setResume,  setJobInfo, setEphemeralToken }
                     ref={jobFileRef}
                     onChange={handleFileSelect}
                 />
-                <FileLabel htmlFor="job-file">
+
+                <FileLabelContainer>
+                    <FileLabel htmlFor="job-file">
                     Click to upload job description file
-                </FileLabel>
+                    </FileLabel>
+                </FileLabelContainer>
 
                 <OrDivider>or paste job description</OrDivider>
 
