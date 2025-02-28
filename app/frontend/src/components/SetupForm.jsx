@@ -11,14 +11,16 @@ const Form = styled.form`
   background: transparent;
   border-radius: 16px;
   box-shadow: var(--shadow-md);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border);
   backdrop-filter: blur(8px);
+  
   h2 {
     color: var(--text-primary);
     margin-bottom: 1.5rem;
     font-size: 1.8rem;
     font-weight: 600;
   }
+
   @media (max-width: 768px) {
     padding: 1rem;
     width: 90%;
@@ -27,14 +29,21 @@ const Form = styled.form`
       margin-bottom: 1rem;
     }
   }
+
+  @media (max-width: 480px) {
+    width: 95%;
+    padding: 0.8rem;
+  }
 `;
 
 const TextArea = styled.textarea`
   width: 100%;
+  max-width: 100%;  /* Prevents overflow */
+  box-sizing: border-box;  /* Ensures it fits within its container */
   margin-bottom: 1.5rem;
   padding: 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--foreground);
+  border: 1px solid var(--border);
   border-radius: 8px;
   min-height: 120px;
   color: var(--text-primary);
@@ -42,14 +51,17 @@ const TextArea = styled.textarea`
   line-height: 1.5;
   resize: vertical;
   transition: all 0.2s ease;
+  
   &:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 0 2px var(--primary-hover);
   }
+
   &::placeholder {
     color: var(--text-secondary);
   }
+
   @media (max-width: 768px) {
     min-height: 100px;
     font-size: 0.95rem;
@@ -67,17 +79,24 @@ const Button = styled.button`
   font-weight: 600;
   font-size: 1rem;
   transition: all 0.2s ease;
-  
+
   &:hover:not(:disabled) {
     background-color: var(--primary-hover);
     transform: translateY(-1px);
   }
+
   &:active:not(:disabled) {
     transform: translateY(0);
   }
+
   &:disabled {
-    opacity: 0.7;
+    opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 0.9rem;
+    padding: 0.8rem;
   }
 `;
 
@@ -87,27 +106,27 @@ const FileInput = styled.input`
 `;
 
 const FileLabel = styled.label`
-  width: 45%;
-  height: 50%;
-  padding: 2rem;
-  border: 2px dashed rgba(255, 255, 255, 0.2);
+  width: 100%;
+  padding: 1.5rem;
+  border: 2px dashed var(--border);
   border-radius: 8px;
   text-align: center;
   cursor: pointer;
-  margin: 2rem auto;  // Added vertical margin and auto horizontal
   color: var(--text-secondary);
   transition: all 0.2s ease;
-  display: flex;          // Added for better centering
-  align-items: center;    // Added for better centering
-  justify-content: center; // Added for better centering
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+
   &:hover {
     border-color: var(--primary-color);
     color: var(--primary-color);
     background: rgba(255, 255, 255, 0.02);
   }
+
   @media (max-width: 768px) {
-    width: 90%;
-    padding: 1.5rem;
+    padding: 1rem;
     font-size: 0.9rem;
   }
 `;
@@ -174,6 +193,7 @@ function SetupForm({ onSessionStart, setResume,  setJobInfo, setEphemeralToken }
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ resume: tmpResume, job: tmpJobInfo }),
+                credentials: "include"
             })
 
             const data = await response.json()

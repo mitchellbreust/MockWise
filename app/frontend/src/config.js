@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const API_URL = 'https://mockwise-production.up.railway.app';
 export { API_URL };
 
 export const API_TIMEOUT = 10000;

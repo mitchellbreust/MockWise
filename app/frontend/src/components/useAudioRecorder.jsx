@@ -43,7 +43,8 @@ const useAudioRecorder = (API_URL, dataChannel, setMessages) => {
                     const response = await fetch(`${API_URL}/stream-transcribe`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'audio/webm' },
-                        body: audioBlob
+                        body: audioBlob,
+                        credentials: "include"
                     });
 
                     if (response.ok) {

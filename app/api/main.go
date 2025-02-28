@@ -11,9 +11,10 @@ import (
 // CORS Middleware
 func enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "https://mock-wise.online") // Allow frontend domain
+		w.Header().Set("Access-Control-Allow-Origin", "https://mock-wise.online") // Allow frontend
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Credentials", "true") // ✅ Allow cookies
 
 		// Handle preflight OPTIONS request
 		if r.Method == http.MethodOptions {
@@ -24,6 +25,7 @@ func enableCORS(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
 
 func main() {
 	port := os.Getenv("PORT") // Get Railway’s assigned port

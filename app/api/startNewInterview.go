@@ -109,8 +109,10 @@ func HandleStartNewInt(resW http.ResponseWriter, req *http.Request) {
 		Value:    token,
 		Expires:  time.Now().Add(24 * time.Hour),
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   true, // ✅ Ensure HTTPS is used (WON'T WORK LOCALLY)
+		SameSite: http.SameSiteNoneMode, // ✅ Allow cross-origin cookies
 		Path:     "/",
 	})
+	
 	json.NewEncoder(resW).Encode(map[string]string{"session": token, "token": tokenRes.ClientSecret.Value})
 }

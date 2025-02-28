@@ -12,21 +12,18 @@ const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 75vh;
-  background: transparent;
+  background: var(--foreground);
   border-radius: 16px;
   box-shadow: var(--shadow-md);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border);
   backdrop-filter: blur(8px);
-
-  @media (prefers-color-scheme: dark) {
-    background: linear-gradient(to bottom, #1e293b, #0f172a);
-  }
-
+  
   @media (max-width: 768px) {
     padding: 12px;
-    height: 85vh; // More height on mobile
+    height: 85vh;
   }
 `;
+
 
 const MessagesContainer = styled.div`
   flex: 1;
@@ -72,8 +69,8 @@ const Message = styled.div`
   border-radius: 20px;
   max-width: 100%;
   word-wrap: break-word;
-  background-color: ${props => props.$isUser ? '#0084ff' : '#f0f0f0'};
-  color: ${props => props.$isUser ? 'white' : '#000'};
+  background-color: ${props => props.$isUser ? 'var(--message-user)' : 'var(--message-bot)'};
+  color: ${props => props.$isUser ? 'white' : 'var(--text-primary)'};
   margin: 2px 0;
   box-shadow: var(--shadow-sm);
   transition: transform 0.2s ease;
@@ -81,8 +78,7 @@ const Message = styled.div`
   &:hover {
     transform: translateY(-1px);
   }
-  
-  /* Instagram-style bubbles */
+
   ${props => props.$isUser ? `
     border-bottom-right-radius: 4px;
   ` : `
@@ -94,6 +90,7 @@ const Message = styled.div`
     font-size: 0.95rem;
   }
 `;
+
 
 const InputArea = styled.div`
   display: flex;
