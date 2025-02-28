@@ -4,8 +4,8 @@ import SetupForm from './components/SetupForm'
 import InterviewChat from './components/InterviewChat'
 
 const AppContainer = styled.div`
-  width: 100%;
-  min-height: 100vh;
+  width: 101vw;
+  min-height: 101vh;
   padding: 2rem;
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   display: flex;
